@@ -7,7 +7,7 @@ import httpx
 from typing import Dict, Optional, List
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -376,6 +376,26 @@ async def fetch_with_retry(url: str, payload: dict, retries: int = 3):
             print(f"Request failed: {e}")
             await asyncio.sleep(1)
     return None
+
+@app.post("/graphql", tags=["Proxy"])
+async def graphql_passthrough(request: Request):
+    """
+    Transparent pass-through to LeetCode's own GraphQL endpoint.
+
+    Forwards whatever {query, variables} body the caller sends, verbatim, and
+    returns LeetCode's response, verbatim — no reshaping, no field renaming,
+    no unwrapping. Every other route in this file picks fields out and
+    renames them for convenience, which means a caller built against those
+    routes has to know this API's own shape. This route exists so a caller
+    already built against https://leetcode.com/graphql directly (same query,
+    same {"data": {"question": {...}}} envelope) needs to change only the
+    URL it posts to, nothing about how it builds the request or reads the
+    response.
+    """
+    body = await request.json()
+    response = await client.post(leetcode_url, json=body)
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
 
 @app.get("/problems", tags=["Problems"])
 async def get_all_problems():
