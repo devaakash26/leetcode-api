@@ -425,10 +425,11 @@ async def get_problem(id_or_slug: str):
 
     # not in cache, fetch from leetcode
     query = """query questionData($titleSlug: String!) {
-        question(titleSlug: $titleSlug) {            
+        question(titleSlug: $titleSlug) {
             questionId
             questionFrontendId
             title
+            titleSlug
             content
             likes
             dislikes
@@ -436,7 +437,9 @@ async def get_problem(id_or_slug: str):
             similarQuestions
             categoryTitle
             hints
-            topicTags { name }
+            exampleTestcases
+            metaData
+            topicTags { name slug }
             companyTags { name }
             difficulty
             isPaidOnly
@@ -446,27 +449,27 @@ async def get_problem(id_or_slug: str):
                 code
             }
             solution { canSeeDetail content }
-            hasSolution 
+            hasSolution
             hasVideoSolution
         }
     }"""
-    
+
     payload = {
         "query": query,
         "variables": {"titleSlug": slug}
     }
-    
+
     data = await fetch_with_retry(leetcode_url, payload)
     if not data or "data" not in data or not data["data"]["question"]:
         raise HTTPException(status_code=404, detail="Question data not found")
-    
+
     question_data = data["data"]["question"]
     question_data["url"] = f"https://leetcode.com/problems/{slug}/"
     if "codeSnippets" in question_data and question_data["codeSnippets"]:
         for s in question_data["codeSnippets"]:
             if "langSlug" in s:
                 s["langsSlug"] = s["langSlug"]
-        
+
     cache.question_details.set(question_id, question_data)
     return question_data
 
@@ -499,10 +502,11 @@ async def get_problem_signature(id_or_slug: str, lang_slug: str):
     # 3. Fetch from LeetCode live if still missing codeSnippets
     if not cached or "codeSnippets" not in cached:
         query = """query questionData($titleSlug: String!) {
-            question(titleSlug: $titleSlug) {            
+            question(titleSlug: $titleSlug) {
                 questionId
                 questionFrontendId
                 title
+                titleSlug
                 content
                 likes
                 dislikes
@@ -510,7 +514,9 @@ async def get_problem_signature(id_or_slug: str, lang_slug: str):
                 similarQuestions
                 categoryTitle
                 hints
-                topicTags { name }
+                exampleTestcases
+                metaData
+                topicTags { name slug }
                 companyTags { name }
                 difficulty
                 isPaidOnly
@@ -520,7 +526,7 @@ async def get_problem_signature(id_or_slug: str, lang_slug: str):
                     code
                 }
                 solution { canSeeDetail content }
-                hasSolution 
+                hasSolution
                 hasVideoSolution
             }
         }"""

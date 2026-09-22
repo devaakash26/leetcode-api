@@ -71,6 +71,7 @@ query questionData($titleSlug: String!) {
     questionId
     questionFrontendId
     title
+    titleSlug
     content
     likes
     dislikes
@@ -78,7 +79,9 @@ query questionData($titleSlug: String!) {
     similarQuestions
     categoryTitle
     hints
-    topicTags { name }
+    exampleTestcases
+    metaData
+    topicTags { name slug }
     companyTags { name }
     difficulty
     isPaidOnly
@@ -91,8 +94,8 @@ query questionData($titleSlug: String!) {
       canSeeDetail
       content
     }
-    hasSolution 
-    hasVideoSolution 
+    hasSolution
+    hasVideoSolution
   }
 }
 """
